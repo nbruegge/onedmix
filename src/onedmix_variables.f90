@@ -1,4 +1,4 @@
-module OneDmix_variables
+module onedmix_variables
 !
 ! This module works as a container for all important model variables.
 !
@@ -108,4 +108,4 @@ module OneDmix_variables
           end do
   end subroutine solve_tridiag
   
-end module OneDmix_variables
+end module onedmix_variables

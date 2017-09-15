@@ -1,9 +1,9 @@
-module OneDmix_timeloop
-  use OneDmix_variables
-  use OneDmix_io
-  use OneDmix_eos
-  use OneDmix_vmix_mypp
-  use OneDmix_vmix_mytke
+module onedmix_timeloop
+  use onedmix_variables
+  use onedmix_io
+  use onedmix_eos
+  use onedmix_vmix_mypp
+  use onedmix_vmix_mytke
   implicit none
   contains
 !-------------------------------------------------------------------------------- 
@@ -48,7 +48,7 @@ module OneDmix_timeloop
         Fexp_vvel = 0.0
   
         ! --- interpolate surface forcing to current time
-        ! (OneDmix_timeloop/interp_forcing)
+        ! (onedmix_timeloop/interp_forcing)
         call interp_forcing(q0, q0_act)
         Fexp_temp(1) = Fexp_temp(1) + q0_act/dzw(1)
         call interp_forcing(emp, emp_act)
@@ -65,7 +65,7 @@ module OneDmix_timeloop
         ! --- derive updated variable from explicite and implicite parts
         ! semi-implicit time stepping
         if (.true.) then
-          ! (OneDmix_timeloop/calc_Gimp2)
+          ! (onedmix_timeloop/calc_Gimp2)
           call calc_Gimp2(temp, kv, dzw, dzt, nz, dt, dimp, epsab, temp, &
                             Gtemp_old, Gtemp_exp,                         &
                             Fexp_temp, 0)
@@ -84,36 +84,36 @@ module OneDmix_timeloop
         Fexp_ptra(1) = 1.0/dzw(1)
         ! restoring
         !Fexp_ptra(1) = 1.0/86400.0 * (1.0 - ptra(1))
-        ! (OneDmix_timeloop/calc_Gimp2)
+        ! (onedmix_timeloop/calc_Gimp2)
         call calc_Gimp2(ptra, 1e-3*one_vec, dzw, dzt, nz, dt,  &
                          dimp, epsab, ptra,                     &
                          Gptra_old, Gptra_exp,                  &
                          Fexp_ptra, 0)
   
         ! --- derive actual density
-        ! (OneDmix_eos/calc_dens)
+        ! (onedmix_eos/calc_dens)
         call calc_dens(temp, salt, 0.d0, dens, nz)
   
         ! --- derive mixing coefficients kv and Av
         if (mixing_scheme == 1) then
-          ! (OneDmix_vmix_mypp/calc_mypp)
+          ! (onedmix_vmix_mypp/calc_mypp)
           call calc_vmix_mypp() 
         elseif (mixing_scheme == 2) then
-          ! (OneDmix_vmix_mytke/calc_mytke)
+          ! (onedmix_vmix_mytke/calc_mytke)
           call calc_vmix_mytke()
         end if
       end do ! ll=1,nt
   
       ! --- model snapshot
       iostep = iostep + 1
-      ! (OneDmix_io/write_snapshot)
+      ! (onedmix_io/write_snapshot)
       call write_snapshot()
 
       if (mixing_scheme == 1) then
-        ! (OneDmix_vmix_mypp/write_snap_mypp)
+        ! (onedmix_vmix_mypp/write_snap_mypp)
         call write_snap_mypp()
       elseif (mixing_scheme == 2) then
-        ! (OneDmix_vmix_mypp/write_snap_mytke)
+        ! (onedmix_vmix_mypp/write_snap_mytke)
         call write_snap_mytke()
       end if
     end do ! l=1,ntt
@@ -215,7 +215,7 @@ module OneDmix_timeloop
 
 !-------------------------------------------------------------------------------- 
   subroutine interp_forcing(forc, forc_interp)
-    use OneDmix_variables
+    use onedmix_variables
     real*8, intent(in), dimension(nforc) :: forc
     real*8, intent(out) :: forc_interp
     integer :: nf
@@ -229,7 +229,7 @@ module OneDmix_timeloop
   end subroutine interp_forcing
 
 !  subroutine calc_vert_grid()
-!    use OneDmix_variables
+!    use onedmix_variables
 !    !real*8, dimension(nz), intent(in) :: dz
 !    integer :: k
 !    !dzw = dz
@@ -255,7 +255,7 @@ module OneDmix_timeloop
   ! FIXME: Is this needed anywhere?
   subroutine calc_Gdiff(phi, kdiff, dzw, dzt, nz, Gdiff)
   !subroutine calc_Gdiff(phi, kdiff, Gdiff)
-  !  use OneDmix_variables
+  !  use onedmix_variables
   !  implicit none
     integer, intent(in) :: nz
     real*8, intent(in), dimension(nz) :: phi, kdiff
@@ -281,4 +281,4 @@ module OneDmix_timeloop
     end do
     Gdiff(nz) = Fz(nz)/dzw(nz)
   end subroutine calc_Gdiff
-end module OneDmix_timeloop
+end module onedmix_timeloop

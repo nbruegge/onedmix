@@ -1,7 +1,7 @@
-module OneDmix_vmix_mytke
-  use OneDmix_variables
-  use OneDmix_eos
-  use OneDmix_io
+module onedmix_vmix_mytke
+  use onedmix_variables
+  use onedmix_eos
+  use onedmix_io
   implicit none
 
   ! namelist parameters
@@ -28,7 +28,7 @@ module OneDmix_vmix_mytke
                              Lmix_min, kappaM_min, kappaM_max, tke_min
     ! read namelist or take standard parameters
     if (.true.) then
-      open(fid, file="./OneDmix.nl", status="old", action='read')
+      open(fid, file="./onedmix.nl", status="old", action='read')
       read(fid, nml=tke)
       close(fid)
     end if
@@ -248,7 +248,7 @@ module OneDmix_vmix_mytke
   subroutine write_snap_mytke
     character(len=20)     :: fprfx
 
-    fprfx = 'OneDmix_state       '
+    fprfx = 'onedmix_state       '
     call save_variable(fprfx, Etke, 'Etke', 'turbulent kinetic energy', &
                        iostep, nz+1, 'm^2 / s^2')
 
@@ -277,4 +277,4 @@ module OneDmix_vmix_mytke
                        iostep, nz+1, 'm^2 / s^3')
   end subroutine write_snap_mytke
 
-end module OneDmix_vmix_mytke
+end module onedmix_vmix_mytke

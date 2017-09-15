@@ -1,17 +1,17 @@
-module OneDmix_setup
+module onedmix_setup
 !
 ! 
 !
-  use OneDmix_variables
-  use OneDmix_eos
-  use OneDmix_io
-  use OneDmix_vmix_mypp
-  use OneDmix_vmix_mytke 
+  use onedmix_variables
+  use onedmix_eos
+  use onedmix_io
+  use onedmix_vmix_mypp
+  use onedmix_vmix_mytke 
   implicit none
 contains
 
 ! -------------------------------------------------------------------------------- 
-  subroutine setup_OneDmix()
+  subroutine setup_onedmix()
     ! --- read namelist "main"
     namelist/main/nz, nt, ntt, dt, dimp, epsab, Avb, kvb, rho0, grav, &
                   cal_type, cal_units, cal_origin, force_freq, nforc, &
@@ -23,7 +23,7 @@ contains
 
     ! --- read namelist
     if (.true.) then
-      open(fid, file="./OneDmix.nl", status="old", action='read')
+      open(fid, file="./onedmix.nl", status="old", action='read')
       read(fid, nml=main)
       close(fid)
     end if
@@ -34,33 +34,33 @@ contains
     end if
 
     ! --- allocate basic variables 
-    ! (OneDmix_setup/allocate_vars)
+    ! (onedmix_setup/allocate_vars)
     call allocate_vars() 
 
     ! --- read initial data and forcing
-    ! (OneDmix_setup/read_input_data)
+    ! (onedmix_setup/read_input_data)
     call read_input_data()
 
     ! --- calculate initial density
-    ! (OneDmix_eos/calc_dens)
+    ! (onedmix_eos/calc_dens)
     call calc_dens(temp, salt, 0.d0, dens, nz)
 
     ! --- write initial output file 
-    ! (OneDmix_io/write_snapshot)
+    ! (onedmix_io/write_snapshot)
     call write_snapshot()
 
     ! --- setup mixing scheme
     if (mixing_scheme == 1) then
-      ! (OneDmix_vmix_mypp/setup_mypp)
+      ! (onedmix_vmix_mypp/setup_mypp)
       call setup_vmix_mypp() 
       call write_snap_mypp()
     elseif (mixing_scheme == 2) then
-      ! (OneDmix_vmix_mytke/setup_mytke)
+      ! (onedmix_vmix_mytke/setup_mytke)
       call setup_vmix_mytke()
       call write_snap_mytke()
     end if
 
-  end subroutine setup_OneDmix
+  end subroutine setup_onedmix
   
 ! -------------------------------------------------------------------------------- 
   subroutine allocate_vars()
@@ -177,5 +177,5 @@ contains
   end subroutine
 
 ! -------------------------------------------------------------------------------- 
-end module OneDmix_setup
+end module onedmix_setup
 

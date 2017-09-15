@@ -1,6 +1,6 @@
-module OneDmix_vmix_mypp
-  use OneDmix_variables
-  use OneDmix_eos
+module onedmix_vmix_mypp
+  use onedmix_variables
+  use onedmix_eos
   implicit none
   
   ! namelist parameters
@@ -76,4 +76,4 @@ module OneDmix_vmix_mypp
   subroutine write_snap_mypp
   end subroutine write_snap_mypp
 
-end module OneDmix_vmix_mypp
+end module onedmix_vmix_mypp

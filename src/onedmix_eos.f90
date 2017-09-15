@@ -1,11 +1,11 @@
-module OneDmix_eos
+module onedmix_eos
   implicit none
 
   contains
 
 !-------------------------------------------------------------------------------- 
   subroutine calc_dens(itemp, isalt, pres0, odens, inz)
-    !use OneDmix_setup
+    !use onedmix_setup
     !use eos
     integer, intent(in)                 :: inz 
     real*8, intent(in), dimension(inz)  :: itemp, isalt 
@@ -97,4 +97,4 @@ module OneDmix_eos
          &         + s * (r_f0 + t * (r_f1 + t * (r_f2 + t * r_f3)))         &
          &         + s3h * (r_g0 + t * (r_g1 + r_g2 * t))))
   END SUBROUTINE potrho
-end module OneDmix_eos
+end module onedmix_eos

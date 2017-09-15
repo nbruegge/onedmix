@@ -1,8 +1,8 @@
-module OneDmix_io
+module onedmix_io
 !
 ! This module contains function to do model io
 !
-  use OneDmix_variables
+  use onedmix_variables
 
   implicit none
 contains
@@ -14,7 +14,7 @@ contains
     write(*,*) "Write iostep: ", iostep
 
     ! --- nz variables
-    fprfx = 'OneDmix_state       '
+    fprfx = 'onedmix_state       '
     !call save_variable( fprfx, uvel, iostep, nz,                    &
     !                    'uvel                ',                     &
     !                    'm / sec             ',                     &
@@ -132,7 +132,7 @@ contains
 !
 !    write(*,*) "Write iostep: ", iostep
 !
-!    fprfx = 'OneDmix_2D'
+!    fprfx = 'onedmix_2D'
 !    fname = trim(path_data) // trim(fprfx) // "_varlist.txt"
 !    open( unit=fid+1, file=fname, status='replace' )
 !
@@ -171,7 +171,7 @@ contains
 !    close(fid+1)
 !
 !    ! all variables that have length nz+1
-!    fprfx = 'OneDmix_2Dp1'
+!    fprfx = 'onedmix_2Dp1'
 !    fname = trim(path_data) // trim(fprfx) // "_varlist.txt"
 !    open( unit=fid+1, file=fname, status='replace' )
 !
@@ -237,7 +237,7 @@ contains
 !    close(fid+1)
 !    
 !    ! 1D variables (time-series of scalars)
-!    fprfx = 'OneDmix_1D'
+!    fprfx = 'onedmix_1D'
 !    fname = trim(path_data) // trim(fprfx) // "_varlist.txt"
 !    open( unit=fid+1, file=fname, status='replace' )
 !
@@ -267,4 +267,4 @@ contains
 !    close(fid+1)
 !  end subroutine write_snapshot_old
 
-end module OneDmix_io
+end module onedmix_io

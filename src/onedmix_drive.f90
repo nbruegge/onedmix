@@ -1,20 +1,20 @@
-program OneDmix 
-  use OneDmix_setup
-  use OneDmix_timeloop
+program onedmix 
+  use onedmix_setup
+  use onedmix_timeloop
   !use diffusion
   implicit none
   
   ! --- setup all model variables and forcing fields
-  ! (OneDmix_setup/setup_OneDmix)
-  call setup_OneDmix()
+  ! (onedmix_setup/setup_onedmix)
+  call setup_onedmix()
 
   ! --- main time loop
-  ! (OneDmix_timeloop/timeloop)
+  ! (onedmix_timeloop/timeloop)
   call timeloop()
 
   ! --- model run is completed
   write(*,*) 'All done!'
   write(*,*) "================================================================================"
 
-end program OneDmix
+end program onedmix
 
