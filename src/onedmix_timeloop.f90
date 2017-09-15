@@ -259,7 +259,12 @@ module onedmix_timeloop
       N2(k) = -grav/rho0*(dens_km1-dens_k)/dzt(k)
       uz(k) = (uvel(k-1)-uvel(k))/dzt(k)
       vz(k) = (vvel(k-1)-vvel(k))/dzt(k)
+      !write(*,*) 'dens_km1 = ', dens_km1
+      !write(*,*) 'dens_k   = ', dens_k
     end do
+    !write(*,*) 'dzt = ', dzt
+    !write(*,*) 'N2 = ', N2
+    !stop
     N2(1) = 0.0
     uz(1) = 0.0
     vz(1) = 0.0
