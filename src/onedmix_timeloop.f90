@@ -1,0 +1,284 @@
+module OneDmix_timeloop
+  use OneDmix_variables
+  use OneDmix_io
+  use OneDmix_eos
+  use OneDmix_vmix_mypp
+  use OneDmix_vmix_mytke
+  implicit none
+  contains
+!-------------------------------------------------------------------------------- 
+  subroutine timeloop
+    integer :: k, l, ll
+    real*8, dimension(nz) :: Gtemp, Gsalt, Guvel, Gvvel
+    real*8, dimension(nz) :: Fexp_ptra, Fexp_temp, Fexp_salt, Fexp_uvel, Fexp_vvel
+    real*8, dimension(nz) :: Fexp
+
+    write(*,*) "================================================================================"
+    write(*,*) "Start calculation..."
+    write(*,*) "(nz, nt) = ", nz, nt
+    write(*,*) "dt = ", dt
+    write(*,*) "================================================================================"
+  
+    do l=1,ntt
+      do ll=1,nt
+        !! explicit Adams-Bashforth time stepping
+        !call calc_Gimp(temp, kv, dzw, dzt, nz, Gtemp)
+        !temp = temp + ( (1.5+epsab)*Gtemp - (0.5+epsab)*Gtemp_old ) * dt
+        !Gtemp_old = Gtemp
+        !Gtemp = 0.0
+  
+        !call calc_Gimp(salt, kv, dzw, dzt, nz, Gsalt)
+        !salt = salt + ( (1.5+epsab)*Gsalt - (0.5+epsab)*Gsalt_old ) * dt
+        !Gsalt_old = Gsalt
+        !Gsalt = 0.0
+  
+        !call calc_Gimp(uvel, Av, dzw, dzt, nz, Guvel)
+        !uvel = uvel + ( (1.5+epsab)*Guvel - (0.5+epsab)*Guvel_old ) * dt
+        !Guvel_old = Guvel
+        !Guvel = 0.0
+  
+        !call calc_Gimp(vvel, Av, dzw, dzt, nz, Gvvel)
+        !vvel = vvel + ( (1.5+epsab)*Gvvel - (0.5+epsab)*Gvvel_old ) * dt
+        !Gvvel_old = Gvvel
+        !Gvvel = 0.0
+  
+        Fexp_temp = 0.0
+        Fexp_salt = 0.0
+        Fexp_uvel = 0.0
+        Fexp_vvel = 0.0
+  
+        ! --- interpolate surface forcing to current time
+        ! (OneDmix_timeloop/interp_forcing)
+        call interp_forcing(q0, q0_act)
+        Fexp_temp(1) = Fexp_temp(1) + q0_act/dzw(1)
+        call interp_forcing(emp, emp_act)
+        Fexp_salt(1) = Fexp_salt(1) + emp_act/dzw(1)
+        call interp_forcing(taux, taux_act)
+        Fexp_uvel(1) = Fexp_uvel(1) + taux_act
+        call interp_forcing(tauy, tauy_act)
+        Fexp_vvel(1) = Fexp_vvel(1) + tauy_act
+
+        ! --- Coriolis force
+        !Fexp_uvel = Fexp_uvel + fCor*vvel
+        !Fexp_vvel = Fexp_vvel - fCor*uvel
+  
+        ! --- derive updated variable from explicite and implicite parts
+        ! semi-implicit time stepping
+        if (.true.) then
+          ! (OneDmix_timeloop/calc_Gimp2)
+          call calc_Gimp2(temp, kv, dzw, dzt, nz, dt, dimp, epsab, temp, &
+                            Gtemp_old, Gtemp_exp,                         &
+                            Fexp_temp, 0)
+          call calc_Gimp2(salt, kv, dzw, dzt, nz, dt, dimp, epsab, salt, &
+                            Gsalt_old, Gsalt_exp,                         &
+                            Fexp_salt, 0)
+          call calc_Gimp2(uvel, Av, dzw, dzt, nz, dt, dimp, epsab, uvel, &
+                            Guvel_old, Guvel_exp,                         &
+                            Fexp_uvel, 0)
+          call calc_Gimp2(vvel, Av, dzw, dzt, nz, dt, dimp, epsab, vvel, &
+                            Gvvel_old, Gvvel_exp,                         &
+                            Fexp_vvel, 0)
+        end if
+        Fexp_ptra = 0.0
+        ! constant surface flux
+        Fexp_ptra(1) = 1.0/dzw(1)
+        ! restoring
+        !Fexp_ptra(1) = 1.0/86400.0 * (1.0 - ptra(1))
+        ! (OneDmix_timeloop/calc_Gimp2)
+        call calc_Gimp2(ptra, 1e-3*one_vec, dzw, dzt, nz, dt,  &
+                         dimp, epsab, ptra,                     &
+                         Gptra_old, Gptra_exp,                  &
+                         Fexp_ptra, 0)
+  
+        ! --- derive actual density
+        ! (OneDmix_eos/calc_dens)
+        call calc_dens(temp, salt, 0.d0, dens, nz)
+  
+        ! --- derive mixing coefficients kv and Av
+        if (mixing_scheme == 1) then
+          ! (OneDmix_vmix_mypp/calc_mypp)
+          call calc_vmix_mypp() 
+        elseif (mixing_scheme == 2) then
+          ! (OneDmix_vmix_mytke/calc_mytke)
+          call calc_vmix_mytke()
+        end if
+      end do ! ll=1,nt
+  
+      ! --- model snapshot
+      iostep = iostep + 1
+      ! (OneDmix_io/write_snapshot)
+      call write_snapshot()
+
+      if (mixing_scheme == 1) then
+        ! (OneDmix_vmix_mypp/write_snap_mypp)
+        call write_snap_mypp()
+      elseif (mixing_scheme == 2) then
+        ! (OneDmix_vmix_mypp/write_snap_mytke)
+        call write_snap_mytke()
+      end if
+    end do ! l=1,ntt
+  
+  end subroutine timeloop
+
+!-------------------------------------------------------------------------------- 
+  subroutine calc_Gimp2(phi, kdiff, dzw, dzt, nz, dt, &
+                         dimp, epsab, phi_new,         &
+                         Gimp, Gexp,          &
+                         Fexp, flag)
+    implicit none
+    
+    integer, intent(in) :: nz
+    real*8, intent(in), dimension(nz) :: phi, kdiff
+    real*8, intent(in), dimension(nz) :: dzt, dzw
+    real*8, intent(in), dimension(nz) :: Fexp
+    real*8, intent(in) :: dimp, epsab, dt
+    integer, intent(in) :: flag
+
+    real*8, intent(inout), dimension(nz) :: Gimp, Gexp
+    real*8, intent(out), dimension(nz) :: phi_new  
+
+    real*8, dimension(nz) :: phi_exp, Gimp_new, Gexp_new 
+    real*8, dimension(nz) :: adiff, bdiff, cdiff
+    real*8, dimension(nz) :: ldiag, mdiag, udiag
+    integer :: k
+    ! time-stepping options
+    ! Euler-Forward:      dimp=0.; epsab=-0.5
+    ! Euler-Backward:     dimp=1.; epsab=-0.5
+    ! Crank-Nicolson:     dimp=0.5; epsab=-0.5
+    ! Adams-Bashforth:    dimp=0.; epsab=0.01
+    ! mixed:              dimp=0.5; epsab=0.01
+
+    adiff = 0.0
+    bdiff = 0.0
+    cdiff = 0.0
+    ldiag = 0.0
+    mdiag = 0.0
+    udiag = 0.0
+    Gimp_new = 0.0
+    Gexp_new = 0.0
+    phi_exp = 0.0
+
+    do k=2,nz
+      adiff(k) = kdiff(k)/(dzw(k)*dzt(k))
+    end do
+    adiff(1) = 0.0 ! dphi/dz(1)=0.
+    do k=2,nz-1
+      bdiff(k) = kdiff(k)/(dzw(k)*dzt(k)) + kdiff(k+1)/(dzw(k)*dzt(k+1))
+    end do
+    bdiff(1)  = kdiff(2)/(dzw(2)*dzt(2)) ! dphi/dz(1)=0.
+    bdiff(nz) = kdiff(nz)/(dzw(nz)*dzt(nz))  ! dphi/dz(nz+1)=0.
+    do k=1,nz-1
+      cdiff(k) = kdiff(k+1)/(dzw(k)*dzt(k+1))
+    end do
+    cdiff(nz) = 0.0 ! dphi/dz(nz+1)=0.
+
+    ! implicit part
+    do k=2,nz-1
+      Gimp_new(k) = adiff(k)*phi(k-1) - bdiff(k)*phi(k) + cdiff(k)*phi(k+1)
+    end do
+    Gimp_new(1)  = cdiff(1)*phi(2) - bdiff(1)*phi(1)
+    Gimp_new(nz) = adiff(nz)*phi(nz-1) - bdiff(nz)*phi(nz)
+
+    ! explicit part
+    ! add forcing
+    if (flag==1) then
+      write(*,*) 'Fexp = ', Fexp
+      write(*,*) 'phi = ', phi
+    end if 
+    Gexp_new  = Fexp
+
+    ! Adams-Bashforth time stepping
+    phi_exp = phi + dt*(1.d0-dimp)*( (1.5+epsab)*Gimp_new - (0.5+epsab)*Gimp ) &
+                  + dt*            ( (1.5+epsab)*Gexp_new - (0.5+epsab)*Gexp )
+    !Gimp_old = Gimp
+    Gimp = Gimp_new
+    Gexp = Gexp_new
+    !phi_exp = phi + dt*(1.0-dimp)*Gimp
+
+    ! implicit part
+    udiag = -dt*dimp*cdiff
+    mdiag = (1+dt*dimp*bdiff)
+    ldiag = -dt*dimp*adiff
+
+    if (.false.) then
+      write(*,*) 'udiag = ', udiag(1:5)
+      write(*,*) 'mdiag = ', mdiag(1:5)
+      write(*,*) 'ldiag = ', ldiag(1:5)
+    end if 
+
+    call solve_tridiag(ldiag, mdiag, udiag, phi_exp, phi_new, nz)
+    !write(*,*) 'phi     = ', phi(1:5)
+    !write(*,*) 'phi_exp = ', phi_exp(1:5)
+    !write(*,*) 'phi_new = ', phi_new(1:5)
+
+  end subroutine calc_Gimp2
+
+!-------------------------------------------------------------------------------- 
+  subroutine interp_forcing(forc, forc_interp)
+    use OneDmix_variables
+    real*8, intent(in), dimension(nforc) :: forc
+    real*8, intent(out) :: forc_interp
+    integer :: nf
+    real*8 :: tact
+  
+    ! linear interpolation
+    tact = ntt*nt*dt
+    nf = floor(tact/force_freq)
+    !write(*,*) 'nf = ', nf
+    forc_interp = (forc(nf+1)-forc(nf))/force_freq * (tact - nf*force_freq) + forc(nf)
+  end subroutine interp_forcing
+
+!  subroutine calc_vert_grid()
+!    use OneDmix_variables
+!    !real*8, dimension(nz), intent(in) :: dz
+!    integer :: k
+!    !dzw = dz
+!    zu(1) = 0.0
+!    do k=2,nz
+!      zu(k) = zu(k-1) + dzw(k)
+!    end do
+!
+!    do k=1,nz
+!      zt(k) = zu(k)+0.5*dzw(k)
+!    end do
+!
+!    dzt(1) = zt(1)
+!    do k=2,nz
+!      dzt(k) = zt(k)-zt(k-1)
+!    end do
+!
+!    write(*,*) 'dzt = ', dzt
+!  end subroutine calc_vert_grid
+
+
+!-------------------------------------------------------------------------------- 
+  ! FIXME: Is this needed anywhere?
+  subroutine calc_Gdiff(phi, kdiff, dzw, dzt, nz, Gdiff)
+  !subroutine calc_Gdiff(phi, kdiff, Gdiff)
+  !  use OneDmix_variables
+  !  implicit none
+    integer, intent(in) :: nz
+    real*8, intent(in), dimension(nz) :: phi, kdiff
+    real*8, intent(in), dimension(nz) :: dzt, dzw
+    
+    real*8, intent(out), dimension(nz) ::  Gdiff
+    
+    real*8, dimension(nz) :: phi_z, Fz
+    integer :: k
+    
+    Gdiff = 0.0
+    phi_z = 0.0
+    Fz = 0.0
+    
+    do k=2,nz
+      phi_z(k) = (phi(k-1)-phi(k))/dzt(k)
+    end do
+    
+    Fz = kdiff*phi_z
+    
+    do k=1,nz-1
+      Gdiff(k) = (Fz(k)-Fz(k+1))/dzw(k)
+    end do
+    Gdiff(nz) = Fz(nz)/dzw(nz)
+  end subroutine calc_Gdiff
+end module OneDmix_timeloop
