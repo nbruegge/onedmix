@@ -5,8 +5,12 @@ module onedmix_vmix_mytke
   implicit none
 
   ! namelist parameters
-  real*8                :: alpha_tke, c_eps, cu, cd
-  real*8                :: Lmix_min, kappaM_min, kappaM_max, tke_min
+  real*8 :: &
+    c_k, c_eps, alpha_tke, mxl_min, kappaM_min, kappaM_max, cd, tke_surf_min, tke_min
+  integer  :: &
+    tke_mxl_choice
+  logical :: &
+    l_tke_active, only_tke, use_ubound_dirichlet, use_lbound_dirichlet
 
   ! TKE diagnostics
   real*8, dimension(:), allocatable :: &
@@ -23,22 +27,14 @@ module onedmix_vmix_mytke
   contains
 !-------------------------------------------------------------------------------- 
   subroutine setup_vmix_mytke
-    namelist/tke/            alpha_tke, c_eps, cu, cd, &
-                             Lmix_min, kappaM_min, kappaM_max, tke_min
+    namelist /tke_paras/                                                   &
+        c_k, c_eps, alpha_tke, mxl_min, kappaM_min, kappaM_max, tke_mxl_choice   &
+      , cd, tke_surf_min, tke_min, l_tke_active                                  &
+      , only_tke, use_ubound_dirichlet, use_lbound_dirichlet
     ! read namelist or take standard parameters
-    if (.true.) then
-      open(fid, file="./onedmix.nl", status="old", action='read')
-      read(fid, nml=tke)
-      close(fid)
-    end if
-    !write(*,*) 'alpha_tke = ', alpha_tke
-    !write(*,*) 'c_eps = ', c_eps
-    !write(*,*) 'cu = ', cu
-    !write(*,*) 'cd = ', cd
-    !write(*,*) 'Lmix_min = ', Lmix_min
-    !write(*,*) 'kappaM_min = ', kappaM_min
-    !write(*,*) 'kappaM_max = ', kappaM_max
-    !write(*,*) 'tke_min = ', tke_min
+    open(fid, file="./onedmix.nl", status="old", action='read')
+    read(fid, nml=tke_paras)
+    close(fid)
 
     allocate( Etke(1:nz+1) ); Etke=0.0
     allocate( Gimp_tke(1:nz+1) ); Gimp_tke=0.0
@@ -90,19 +86,19 @@ module onedmix_vmix_mytke
     do k=2,nz+1
       Lmix(k) = MIN(Lmix(k), Lmix(k-1)+dzt(k-1) )
     end do 
-    Lmix(1) = MIN( Lmix(1), Lmix_min+dzt(1))
+    Lmix(1) = MIN( Lmix(1), mxl_min+dzt(1))
     do k=nz,1,-1
       Lmix(k) = MIN(Lmix(k), Lmix(k+1)+dzt(k))
     end do
-    Lmix = max(Lmix, Lmix_min)
+    Lmix = max(Lmix, mxl_min)
 
     ! Pr=6.6*Ri with 1<Pr<10
     Pr = max(1.0, min(10.0,6.6*Ri) )
     Av = 0.
     kv = 0.
-    !Av = Av + cu * sqrt(Etke) * Lmix
+    !Av = Av + c_k * sqrt(Etke) * Lmix
     !kv = kv + cb * sqrt(Etke) * Lmix
-    Av = min(kappaM_max, cu*sqrtEtke*Lmix )
+    Av = min(kappaM_max, c_k*sqrtEtke*Lmix )
     kv = Av / Pr
     !Av = Av + Avb
     !kv = kv + kvb
