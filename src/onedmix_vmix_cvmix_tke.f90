@@ -190,6 +190,35 @@ LOGICAL :: &
 
 !-------------------------------------------------------------------------------- 
   subroutine write_snap_cvmix_tke
+    character(len=20)     :: fprfx
+
+    fprfx = 'onedmix_state       '
+    call save_variable(fprfx, tke, 'tke', 'turbulent kinetic energy', &
+                       iostep, nz+1, 'm^2 / s^2')
+
+    call save_variable(fprfx, tke_Tdif, 'tke_Tdif', &
+                       'tke tendency by diffusion', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Tdis, 'tke_Tdis', &
+                       'tke tendency by dissipation', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Tspr, 'tke_Tspr', &
+                       'tke tendency by dissipation', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Tbpr, 'tke_Tbpr', &
+                       'tke tendency by dissipation', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Ttau, 'tke_Ttau', &
+                       'tke tendency by dissipation', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Ttot, 'tke_Ttot', &
+                       'tke tendency by dissipation', &
+                       iostep, nz+1, 'm^2 / s^3')
   end subroutine write_snap_cvmix_tke
 
 end module onedmix_cvmix_tke
