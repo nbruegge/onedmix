@@ -7,6 +7,7 @@ module onedmix_setup
   use onedmix_io
   use onedmix_vmix_mypp
   use onedmix_vmix_mytke 
+  use onedmix_cvmix_tke
   implicit none
 contains
 
@@ -58,6 +59,10 @@ contains
       ! (onedmix_vmix_mytke/setup_mytke)
       call setup_vmix_mytke()
       call write_snap_mytke()
+    elseif (mixing_scheme == 3) then
+      ! (onedmix_cvmix_tke/setup_cvmix_tke)
+      call setup_cvmix_tke()
+      call write_snap_cvmix_tke()
     end if
 
   end subroutine setup_onedmix

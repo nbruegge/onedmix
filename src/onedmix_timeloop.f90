@@ -4,6 +4,7 @@ module onedmix_timeloop
   use onedmix_eos
   use onedmix_vmix_mypp
   use onedmix_vmix_mytke
+  use onedmix_cvmix_tke
   implicit none
   contains
 !-------------------------------------------------------------------------------- 
@@ -105,6 +106,9 @@ module onedmix_timeloop
         elseif (mixing_scheme == 2) then
           ! (onedmix_vmix_mytke/calc_mytke)
           call calc_vmix_mytke()
+        elseif (mixing_scheme == 3) then
+          ! (onedmix_cvmix_tke/calc_cvmix_tke)
+          call calc_cvmix_tke()
         end if
       end do ! ll=1,nt
   
@@ -119,6 +123,9 @@ module onedmix_timeloop
       elseif (mixing_scheme == 2) then
         ! (onedmix_vmix_mypp/write_snap_mytke)
         call write_snap_mytke()
+      elseif (mixing_scheme == 3) then
+        ! (onedmix_cvmix_tke/write_snap_cvmix_tke)
+        call write_snap_cvmix_tke()
       end if
     end do ! l=1,ntt
   
