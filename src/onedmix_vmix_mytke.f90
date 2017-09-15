@@ -21,7 +21,6 @@ module onedmix_vmix_mytke
                                        TEtke_tot
   
   contains
-
 !-------------------------------------------------------------------------------- 
   subroutine setup_vmix_mytke
     namelist/tke/            alpha_tke, c_eps, cu, cd, &
@@ -62,7 +61,6 @@ module onedmix_vmix_mytke
     real*8, dimension(nz+1) :: delta, Lmix, sqrtEtke
     real*8, dimension(nz+1) :: K_diss_v, P_diss_v
     real*8, dimension(nz+1) :: old_Etke
-    real*8, dimension(nz+1) :: pint
     real*8                :: dens_km1, dens_k
     real*8                :: forc_rho_surf, forc_tke_surf
     integer :: k
@@ -85,30 +83,6 @@ module onedmix_vmix_mytke
     !taux_act = 1.0550815445478266E-004
     !tauy_act = 9.9133200202586159E-006
     old_Etke = Etke
-
-    ! FIXME: Put this to a more general place and use it for all mixing modules
-    ! derive viscosity and diffusivity
-    !pint = grav*rho0*zu
-    pint = 0.0001 * rho0 * (-zu)
-    do k=2,nz
-      !pint = 0.5*(pbcl(k-1)+pbcl(k))
-      call potrho(temp(k-1), salt(k-1), pint(k), dens_km1) 
-      call potrho(temp(k),   salt(k),   pint(k), dens_k) 
-      N2(k) = -grav/rho0*(dens_km1-dens_k)/dzt(k)
-      uz(k) = (uvel(k-1)-uvel(k))/dzt(k)
-      vz(k) = (vvel(k-1)-vvel(k))/dzt(k)
-    end do
-    N2(1) = 0.0
-    uz(1) = 0.0
-    vz(1) = 0.0
-    N2(nz+1) = 0.0
-    uz(nz+1) = 0.0
-    vz(nz+1) = 0.0
-    S2 = uz**2+vz**2
-    !N2 = temp
-    !S2 = uvel
-
-    Ri = N2/max(S2,1e-12)
 
     sqrtEtke = sqrt(max(0d0,Etke))
     Lmix = sqrt(2.0)*sqrtEtke/sqrt(max(1d-12, N2))

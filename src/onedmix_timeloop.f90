@@ -93,6 +93,10 @@ module onedmix_timeloop
         ! --- derive actual density
         ! (onedmix_eos/calc_dens)
         call calc_dens(temp, salt, 0.d0, dens, nz)
+
+        ! --- 
+        ! (onedmix_timeloop/calc_vertical_gradients)
+        call calc_vertical_gradients()
   
         ! --- derive mixing coefficients kv and Av
         if (mixing_scheme == 1) then
@@ -227,6 +231,36 @@ module onedmix_timeloop
     !write(*,*) 'nf = ', nf
     forc_interp = (forc(nf+1)-forc(nf))/force_freq * (tact - nf*force_freq) + forc(nf)
   end subroutine interp_forcing
+
+!-------------------------------------------------------------------------------- 
+  subroutine calc_vertical_gradients()
+    real*8, dimension(nz+1) :: pint
+    ! --- initialize/reset values
+    N2=0.0
+    S2=0.0
+    uz=0.0
+    vz=0.0
+    Ri=0.0
+    ! as in MPIOM beleg.f90 (l. 79)
+    pint = 0.0001 * rho0 * (-zu)
+    do k=2,nz
+      !pint = 0.5*(pbcl(k-1)+pbcl(k))
+      call potrho(temp(k-1), salt(k-1), pint(k), dens_km1) 
+      call potrho(temp(k),   salt(k),   pint(k), dens_k) 
+      N2(k) = -grav/rho0*(dens_km1-dens_k)/dzt(k)
+      uz(k) = (uvel(k-1)-uvel(k))/dzt(k)
+      vz(k) = (vvel(k-1)-vvel(k))/dzt(k)
+    end do
+    N2(1) = 0.0
+    uz(1) = 0.0
+    vz(1) = 0.0
+    N2(nz+1) = 0.0
+    uz(nz+1) = 0.0
+    vz(nz+1) = 0.0
+    S2 = uz**2+vz**2
+    Ri = N2/max(S2,1e-12)
+  end subroutine calc_vertical_gradients
+
 
 !  subroutine calc_vert_grid()
 !    use onedmix_variables
