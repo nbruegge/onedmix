@@ -14,19 +14,20 @@ module onedmix_vmix_mytke
 
   ! TKE diagnostics
   real*8, dimension(:), allocatable :: &
-                                       Etke,          &
+                                       tke,          &
                                        Gimp_tke,      &
                                        Gexp_tke,      &
-                                       TEtke_dif,     &
-                                       TEtke_dis,     &
-                                       TEtke_spr,     &
-                                       TEtke_bpr,     &
-                                       TEtke_tau,     &
-                                       TEtke_tot
+                                       tke_Tdif,     &
+                                       tke_Tdis,     &
+                                       tke_Tspr,     &
+                                       tke_Tbpr,     &
+                                       tke_Ttau,     &
+                                       tke_Ttot
   
   contains
 !-------------------------------------------------------------------------------- 
   subroutine setup_vmix_mytke
+    character(len=128)    :: fname
     namelist /tke_paras/                                                   &
         c_k, c_eps, alpha_tke, mxl_min, kappaM_min, kappaM_max, tke_mxl_choice   &
       , cd, tke_surf_min, tke_min, l_tke_active                                  &
@@ -36,27 +37,33 @@ module onedmix_vmix_mytke
     read(fid, nml=tke_paras)
     close(fid)
 
-    allocate( Etke(1:nz+1) ); Etke=0.0
+    allocate( tke(1:nz+1) ); tke=0.0
     allocate( Gimp_tke(1:nz+1) ); Gimp_tke=0.0
     allocate( Gexp_tke(1:nz+1) ); Gexp_tke=0.0
 
-    allocate( TEtke_dif(1:nz+1) ); TEtke_dif=0.0
-    allocate( TEtke_dis(1:nz+1) ); TEtke_dis=0.0
-    allocate( TEtke_spr(1:nz+1) ); TEtke_spr=0.0
-    allocate( TEtke_bpr(1:nz+1) ); TEtke_bpr=0.0
-    allocate( TEtke_tau(1:nz+1) ); TEtke_tau=0.0
-    allocate( TEtke_tot(1:nz+1) ); TEtke_tot=0.0
+    allocate( tke_Tdif(1:nz+1) ); tke_Tdif=0.0
+    allocate( tke_Tdis(1:nz+1) ); tke_Tdis=0.0
+    allocate( tke_Tspr(1:nz+1) ); tke_Tspr=0.0
+    allocate( tke_Tbpr(1:nz+1) ); tke_Tbpr=0.0
+    allocate( tke_Ttau(1:nz+1) ); tke_Ttau=0.0
+    allocate( tke_Ttot(1:nz+1) ); tke_Ttot=0.0
+
+    ! read initial tke
+    fname = trim(path_data) // "etke0.txt"
+    open(fid, file=fname, status="old", action='read')
+    read(fid, *) tke
+    close(fid)
 
   end subroutine setup_vmix_mytke
 
 !-------------------------------------------------------------------------------- 
   subroutine calc_vmix_mytke
-    real*8, dimension(nz+1) :: Gimp_tke_new, Gexp_tke_new, Etke_exp
+    real*8, dimension(nz+1) :: Gimp_tke_new, Gexp_tke_new, tke_exp
     real*8, dimension(nz+1) :: adiff, bdiff, cdiff, ldiag, mdiag, udiag
     real*8, dimension(nz+1) :: ke, Pr, cb
-    real*8, dimension(nz+1) :: delta, Lmix, sqrtEtke
+    real*8, dimension(nz+1) :: delta, Lmix, sqrttke
     real*8, dimension(nz+1) :: K_diss_v, P_diss_v
-    real*8, dimension(nz+1) :: old_Etke
+    real*8, dimension(nz+1) :: old_tke
     real*8                :: forc_rho_surf, forc_tke_surf
     integer :: k
 
@@ -68,7 +75,7 @@ module onedmix_vmix_mytke
     udiag = 0.0
     Gimp_tke_new = 0.0
     Gexp_tke_new = 0.0
-    Etke_exp = 0.0
+    tke_exp = 0.0
 
     ! FIXME: Derive this!
     forc_rho_surf = 0.0
@@ -77,10 +84,10 @@ module onedmix_vmix_mytke
     !tauy = 1.2652587216272979E-004
     !taux_act = 1.0550815445478266E-004
     !tauy_act = 9.9133200202586159E-006
-    old_Etke = Etke
+    old_tke = tke
 
-    sqrtEtke = sqrt(max(0d0,Etke))
-    Lmix = sqrt(2.0)*sqrtEtke/sqrt(max(1d-12, N2))
+    sqrttke = sqrt(max(0d0,tke))
+    Lmix = sqrt(2.0)*sqrttke/sqrt(max(1d-12, N2))
     ! !!! Do mixing length restriction stuff
     ! constrain mixing length scale as in MITgcm/OPA code (from pyOM)
     do k=2,nz+1
@@ -96,14 +103,14 @@ module onedmix_vmix_mytke
     Pr = max(1.0, min(10.0,6.6*Ri) )
     Av = 0.
     kv = 0.
-    !Av = Av + c_k * sqrt(Etke) * Lmix
-    !kv = kv + cb * sqrt(Etke) * Lmix
-    Av = min(kappaM_max, c_k*sqrtEtke*Lmix )
+    !Av = Av + c_k * sqrt(tke) * Lmix
+    !kv = kv + cb * sqrt(tke) * Lmix
+    Av = min(kappaM_max, c_k*sqrttke*Lmix )
     kv = Av / Pr
     !Av = Av + Avb
     !kv = kv + kvb
 
-    ! diffusion of Etke
+    ! diffusion of tke
     ke = alpha_tke*Av
     do k=2,nz+1
       delta(k) = 0.5*(ke(k)+ke(k-1))/dzw(k-1)
@@ -131,35 +138,35 @@ module onedmix_vmix_mytke
 
     ! implicit part
     do k=2,nz
-      Gimp_tke_new(k) = adiff(k)*Etke(k-1) - bdiff(k)*Etke(k) + cdiff(k)*Etke(k+1)
+      Gimp_tke_new(k) = adiff(k)*tke(k-1) - bdiff(k)*tke(k) + cdiff(k)*tke(k+1)
     end do
-    Gimp_tke_new(1)    = cdiff(1)*Etke(2)     - bdiff(1)*Etke(1)
-    Gimp_tke_new(nz+1) = adiff(nz+1)*Etke(nz) - bdiff(nz+1)*Etke(nz+1)
-    TEtke_dif = Gimp_tke_new
-    ! add Etke dissipation
-    Gimp_tke_new = Gimp_tke_new - c_eps*sqrtEtke**3/Lmix
-    TEtke_dis = -c_eps*sqrtEtke**3/Lmix
+    Gimp_tke_new(1)    = cdiff(1)*tke(2)     - bdiff(1)*tke(1)
+    Gimp_tke_new(nz+1) = adiff(nz+1)*tke(nz) - bdiff(nz+1)*tke(nz+1)
+    tke_Tdif = Gimp_tke_new
+    ! add tke dissipation
+    Gimp_tke_new = Gimp_tke_new - c_eps*sqrttke**3/Lmix
+    tke_Tdis = -c_eps*sqrttke**3/Lmix
 
     ! explicit part
     ! add forcing
     P_diss_v   = kv*N2
     K_diss_v   = Av*S2
     P_diss_v(1) = -forc_rho_surf*grav/rho0
-    TEtke_spr = K_diss_v
-    TEtke_bpr = -P_diss_v
+    tke_Tspr = K_diss_v
+    tke_Tbpr = -P_diss_v
     Gexp_tke_new = K_diss_v-P_diss_v
     forc_tke_surf = cd * sqrt( (taux_act**2 + tauy_act**2)**(3./2.)  )
     Gexp_tke_new(1) = Gexp_tke_new(1) + forc_tke_surf/dzt(1)
-    TEtke_tau(1) = forc_tke_surf/dzt(1)
+    tke_Ttau(1) = forc_tke_surf/dzt(1)
 
     ! Adams-Bashforth time stepping
-    !write(*,*) 'Etke_exp = ', Etke_exp
-    !write(*,*) 'Etke = ', Etke
+    !write(*,*) 'tke_exp = ', tke_exp
+    !write(*,*) 'tke = ', tke
     !write(*,*) 'Gimp_tke_new = ', Gimp_tke_new
     !write(*,*) 'Gimp_tke = ', Gimp_tke
     !write(*,*) 'Gexp_tke_new = ', Gexp_tke_new
     !write(*,*) 'Gexp_tke = ', Gexp_tke
-    Etke_exp = Etke+dt*(1.d0-dimp)*((1.5+epsab)*Gimp_tke_new-(0.5+epsab)*Gimp_tke) &
+    tke_exp = tke+dt*(1.d0-dimp)*((1.5+epsab)*Gimp_tke_new-(0.5+epsab)*Gimp_tke) &
                    +dt*            ((1.5+epsab)*Gexp_tke_new-(0.5+epsab)*Gexp_tke)
     Gimp_tke = Gimp_tke_new
     Gexp_tke = Gexp_tke_new
@@ -167,16 +174,16 @@ module onedmix_vmix_mytke
     ! implicit part
     ! FIXME: Add dissipation and forcing to mdiag
     udiag = -dt*dimp*cdiff
-    mdiag = (1+dt*dimp*(bdiff + c_eps*sqrtEtke/Lmix))
+    mdiag = (1+dt*dimp*(bdiff + c_eps*sqrttke/Lmix))
     ldiag = -dt*dimp*adiff
-    call solve_tridiag(ldiag, mdiag, udiag, Etke_exp, Etke, nz+1)
+    call solve_tridiag(ldiag, mdiag, udiag, tke_exp, tke, nz+1)
  
-    ! set bounding values of Etke
-    if (Etke(1) < 0.0) then
-      Etke(1) = 0.0
+    ! set bounding values of tke
+    if (tke(1) < 0.0) then
+      tke(1) = 0.0
     end if
-    Etke(2:nz+1) = max(Etke(2:nz+1), tke_min)
-    TEtke_tot = (Etke-old_Etke)/dt
+    tke(2:nz+1) = max(tke(2:nz+1), tke_min)
+    tke_Ttot = (tke-old_tke)/dt
 
     tstep_count = tstep_count+1
     if (.false.) then
@@ -194,7 +201,7 @@ module onedmix_vmix_mytke
       !write(*,*) 'dzt = ', dzt
       !write(*,*) 'Pr  = ', Pr
       write(*,*) 'Lmix = ', Lmix
-      write(*,*) 'sqrtEtke = ', sqrtEtke
+      write(*,*) 'sqrttke = ', sqrttke
       write(*,*) 'Av = ', Av
       write(*,*) 'delta*dt = ', delta*dt
       write(*,*) 'Gexp_tke_new = ', Gexp_tke_new
@@ -202,8 +209,8 @@ module onedmix_vmix_mytke
       write(*,*) 'ldiag = ', ldiag
       write(*,*) 'mdiag = ', mdiag
       write(*,*) 'udiag = ', udiag
-      write(*,*) 'Etke_exp = ', Etke_exp
-      write(*,*) 'Etke = ', Etke
+      write(*,*) 'tke_exp = ', tke_exp
+      write(*,*) 'tke = ', tke
       !write(*,*) 'kv = ', kv
       write(*,*) "================================================================================"  
     if ( tstep_count==1 ) then
@@ -218,30 +225,30 @@ module onedmix_vmix_mytke
     character(len=20)     :: fprfx
 
     fprfx = 'onedmix_state       '
-    call save_variable(fprfx, Etke, 'Etke', 'turbulent kinetic energy', &
+    call save_variable(fprfx, tke, 'tke', 'turbulent kinetic energy', &
                        iostep, nz+1, 'm^2 / s^2')
 
-    call save_variable(fprfx, TEtke_dif, 'TEtke_dif', &
+    call save_variable(fprfx, tke_Tdif, 'tke_Tdif', &
                        'tke tendency by diffusion', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, TEtke_dis, 'TEtke_dis', &
+    call save_variable(fprfx, tke_Tdis, 'tke_Tdis', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, TEtke_spr, 'TEtke_spr', &
+    call save_variable(fprfx, tke_Tspr, 'tke_Tspr', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, TEtke_bpr, 'TEtke_bpr', &
+    call save_variable(fprfx, tke_Tbpr, 'tke_Tbpr', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, TEtke_tau, 'TEtke_tau', &
+    call save_variable(fprfx, tke_Ttau, 'tke_Ttau', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, TEtke_tot, 'TEtke_tot', &
+    call save_variable(fprfx, tke_Ttot, 'tke_Ttot', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
   end subroutine write_snap_mytke
