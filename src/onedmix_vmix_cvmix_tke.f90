@@ -131,8 +131,8 @@ LOGICAL :: &
     i = 1
     j = 1
     tstep_count = 1
-    avo_old = 0.0
-    dvo_old = 0.0
+    avo_old = 0.0  ! not used in cvmix (as far as I can see)
+    dvo_old = 0.0  ! not used in cvmix (as far as I can see)
     
     !tke forcing fields
     forc_tke_surf = cd * sqrt( (taux_act**2 + tauy_act**2)**(3./2.)  )
@@ -187,6 +187,10 @@ LOGICAL :: &
                            grav         = grav,            &
                            alpha_c      = tke_iw_alpha_c   &
                          )
+    if (l_tke_active) then
+      Av = tke_avo 
+      kv = tke_dvo 
+    end if
   end subroutine calc_cvmix_tke
 
 !-------------------------------------------------------------------------------- 
