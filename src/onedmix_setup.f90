@@ -150,10 +150,6 @@ contains
     open(fid, file=fname, status="old", action='read')
     read(fid, *) ptra
     close(fid)
-    fname = trim(path_data) // "etke0.txt"
-    open(fid, file=fname, status="old", action='read')
-    read(fid, *) Etke
-    close(fid)
     fname = trim(path_data) // "forc_time.txt"
     open(fid, file=fname, status="old", action='read')
     read(fid, *) forc_time
