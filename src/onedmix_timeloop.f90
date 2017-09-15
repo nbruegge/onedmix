@@ -172,16 +172,16 @@ module onedmix_timeloop
     do k=2,nz
       adiff(k) = kdiff(k)/(dzw(k)*dzt(k))
     end do
-    adiff(1) = 0.0 ! dphi/dz(1)=0.
+    adiff(1) = 0.0 ! adiff(1) does not enter diffusion matrix
     do k=2,nz-1
       bdiff(k) = kdiff(k)/(dzw(k)*dzt(k)) + kdiff(k+1)/(dzw(k)*dzt(k+1))
     end do
-    bdiff(1)  = kdiff(2)/(dzw(2)*dzt(2)) ! dphi/dz(1)=0.
+    bdiff(1)  = kdiff(2)/(dzw(1)*dzt(2)) ! dphi/dz(1)=0.
     bdiff(nz) = kdiff(nz)/(dzw(nz)*dzt(nz))  ! dphi/dz(nz+1)=0.
     do k=1,nz-1
       cdiff(k) = kdiff(k+1)/(dzw(k)*dzt(k+1))
     end do
-    cdiff(nz) = 0.0 ! dphi/dz(nz+1)=0.
+    cdiff(nz) = 0.0 ! cdiff(nz) does not enter diffusion matrix
 
     ! implicit part
     do k=2,nz-1
@@ -189,6 +189,20 @@ module onedmix_timeloop
     end do
     Gimp_new(1)  = cdiff(1)*phi(2) - bdiff(1)*phi(1)
     Gimp_new(nz) = adiff(nz)*phi(nz-1) - bdiff(nz)*phi(nz)
+
+    !Gimp_new = 0.0
+    !do k=2,nz-1
+    !  Gimp_new(k) =       kdiff(k)/(dzw(k)*dzt(k))       * phi(k-1) &
+    !                - (   kdiff(k)/(dzw(k)*dzt(k))                  &
+    !                    + kdiff(k+1)/(dzw(k)*dzt(k+1)) ) * phi(k)   &
+    !                +     kdiff(k+1)/(dzw(k)*dzt(k+1))   * phi(k+1) 
+    !enddo
+    !k = 1
+    !Gimp_new(k) = - kdiff(k+1)/(dzw(k)*dzt(k+1))   * phi(k)   &
+    !              + kdiff(k+1)/(dzw(k)*dzt(k+1))   * phi(k+1)
+    !k = nz
+    !Gimp_new(k) =   kdiff(k)/(dzw(k)*dzt(k))       * phi(k-1) &
+    !              - kdiff(k)/(dzw(k)*dzt(k))       * phi(k)
 
     ! explicit part
     ! add forcing
@@ -218,6 +232,7 @@ module onedmix_timeloop
     end if 
 
     call solve_tridiag(ldiag, mdiag, udiag, phi_exp, phi_new, nz)
+    !phi_new = phi + dt*( (1.5+epsab)*Gimp_new - (0.5+epsab)*Gimp )
     !write(*,*) 'phi     = ', phi(1:5)
     !write(*,*) 'phi_exp = ', phi_exp(1:5)
     !write(*,*) 'phi_new = ', phi_new(1:5)
