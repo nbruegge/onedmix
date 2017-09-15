@@ -21,7 +21,7 @@ module onedmix_vmix_mytke
                                        tke_Tdis,     &
                                        tke_Tspr,     &
                                        tke_Tbpr,     &
-                                       tke_Ttau,     &
+                                       tke_Twin,     &
                                        tke_Ttot
   
   contains
@@ -45,7 +45,7 @@ module onedmix_vmix_mytke
     allocate( tke_Tdis(1:nz+1) ); tke_Tdis=0.0
     allocate( tke_Tspr(1:nz+1) ); tke_Tspr=0.0
     allocate( tke_Tbpr(1:nz+1) ); tke_Tbpr=0.0
-    allocate( tke_Ttau(1:nz+1) ); tke_Ttau=0.0
+    allocate( tke_Twin(1:nz+1) ); tke_Twin=0.0
     allocate( tke_Ttot(1:nz+1) ); tke_Ttot=0.0
 
     ! read initial tke
@@ -157,7 +157,7 @@ module onedmix_vmix_mytke
     Gexp_tke_new = K_diss_v-P_diss_v
     forc_tke_surf = cd * sqrt( (taux_act**2 + tauy_act**2)**(3./2.)  )
     Gexp_tke_new(1) = Gexp_tke_new(1) + forc_tke_surf/dzt(1)
-    tke_Ttau(1) = forc_tke_surf/dzt(1)
+    tke_Twin(1) = forc_tke_surf/dzt(1)
 
     ! Adams-Bashforth time stepping
     !write(*,*) 'tke_exp = ', tke_exp
@@ -244,7 +244,7 @@ module onedmix_vmix_mytke
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, tke_Ttau, 'tke_Ttau', &
+    call save_variable(fprfx, tke_Twin, 'tke_Twin', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 

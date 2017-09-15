@@ -2,6 +2,7 @@ module onedmix_cvmix_tke
   use cvmix_tke
   use onedmix_variables
   use onedmix_eos
+  use onedmix_io
   implicit none
 
 REAL*8 :: forc_tke_surf, bottom_fric, forc_rho_surf
@@ -212,7 +213,7 @@ LOGICAL :: &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, tke_Ttau, 'tke_Ttau', &
+    call save_variable(fprfx, tke_Twin, 'tke_Twin', &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
