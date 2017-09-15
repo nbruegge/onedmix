@@ -24,7 +24,6 @@ module onedmix_vmix_mypp
   
 !-------------------------------------------------------------------------------- 
   subroutine calc_vmix_mypp
-    real*8 :: pint, dens_km1, dens_k
     integer :: k
 
     ! --- initialize/reset values

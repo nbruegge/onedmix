@@ -61,7 +61,6 @@ module onedmix_vmix_mytke
     real*8, dimension(nz+1) :: delta, Lmix, sqrtEtke
     real*8, dimension(nz+1) :: K_diss_v, P_diss_v
     real*8, dimension(nz+1) :: old_Etke
-    real*8                :: dens_km1, dens_k
     real*8                :: forc_rho_surf, forc_tke_surf
     integer :: k
 

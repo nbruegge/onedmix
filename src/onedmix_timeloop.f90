@@ -235,6 +235,8 @@ module onedmix_timeloop
 !-------------------------------------------------------------------------------- 
   subroutine calc_vertical_gradients()
     real*8, dimension(nz+1) :: pint
+    real*8                  :: dens_km1, dens_k
+    integer :: k
     ! --- initialize/reset values
     N2=0.0
     S2=0.0
