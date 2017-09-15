@@ -201,6 +201,14 @@ LOGICAL :: &
     call save_variable(fprfx, tke, 'tke', 'turbulent kinetic energy', &
                        iostep, nz+1, 'm^2 / s^2')
 
+    call save_variable(fprfx, tke_Tbpr, 'tke_Tbpr', &
+                       'tke tendency by buoyancy production', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Tspr, 'tke_Tspr', &
+                       'tke tendency by shear production', &
+                       iostep, nz+1, 'm^2 / s^3')
+
     call save_variable(fprfx, tke_Tdif, 'tke_Tdif', &
                        'tke tendency by diffusion', &
                        iostep, nz+1, 'm^2 / s^3')
@@ -209,20 +217,20 @@ LOGICAL :: &
                        'tke tendency by dissipation', &
                        iostep, nz+1, 'm^2 / s^3')
 
-    call save_variable(fprfx, tke_Tspr, 'tke_Tspr', &
-                       'tke tendency by dissipation', &
-                       iostep, nz+1, 'm^2 / s^3')
-
-    call save_variable(fprfx, tke_Tbpr, 'tke_Tbpr', &
-                       'tke tendency by dissipation', &
-                       iostep, nz+1, 'm^2 / s^3')
-
     call save_variable(fprfx, tke_Twin, 'tke_Twin', &
-                       'tke tendency by dissipation', &
+                       'tke tendency by surface wind forcing', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Tiwf, 'tke_Tiwf', &
+                       'tke tendency by internal waves', &
+                       iostep, nz+1, 'm^2 / s^3')
+
+    call save_variable(fprfx, tke_Tbck, 'tke_Tbck', &
+                       'tke tendency by resetting to background value', &
                        iostep, nz+1, 'm^2 / s^3')
 
     call save_variable(fprfx, tke_Ttot, 'tke_Ttot', &
-                       'tke tendency by dissipation', &
+                       'total tke tendency', &
                        iostep, nz+1, 'm^2 / s^3')
   end subroutine write_snap_cvmix_tke
 
