@@ -4,7 +4,7 @@ module onedmix_cvmix_tke
   use onedmix_eos
   implicit none
 
-REAL*8 :: forc_rho_surf, bottom_fric
+REAL*8 :: forc_tke_surf, bottom_fric, forc_rho_surf
 REAL*8, DIMENSION(:), ALLOCATABLE, TARGET :: &
   tke_diss                                        ,&
   tke_iw_forcing                                  ,&
@@ -26,10 +26,8 @@ REAL*8, DIMENSION(:), ALLOCATABLE, TARGET :: &
   tke_Tbck                                        ,&
   tke_Ttot                                        ,&
   tke_avo                                         ,&
-  tke_dvo                                         ,&
+  tke_dvo                                         
   ! end nils tke diagnostics
-  Nsqr_3D                                         ,& 
-  Ssqr_3D
 
 ! VMIX_NL/CVMIX_TKE_PARAM namelist parameters
 REAL*8 :: &
@@ -43,6 +41,7 @@ LOGICAL :: &
   contains
 !-------------------------------------------------------------------------------- 
   subroutine setup_cvmix_tke
+    character(len=128)    :: fname
     namelist /tke_paras/                                                   &
         c_k, c_eps, alpha_tke, mxl_min, kappaM_min, kappaM_max, tke_mxl_choice   &
       , cd, tke_surf_min, tke_min, l_tke_active                                  &
@@ -62,13 +61,6 @@ LOGICAL :: &
    
     ALLOCATE(tke_diss(nz+1))
       tke_diss(:)=0.0
-    ! allocate only of IDEMIX was not used
-    !IF (only_tke) THEN
-    ALLOCATE(Nsqr_3D(nz+1))
-      Nsqr_3D(:)=0.0
-    !ENDIF
-    ALLOCATE(Ssqr_3D(nz+1))
-      Ssqr_3D(:)=0.0
     ALLOCATE(cvmix_dummy_1(nz+1))
      cvmix_dummy_1(:)=0.0
     ALLOCATE(cvmix_dummy_2(nz+1))
@@ -103,15 +95,16 @@ LOGICAL :: &
     ALLOCATE(tke_dvo(nz+1))
      tke_dvo(:)=0.0
    
-    ! 2-d fields
-    !ALLOCATE(forc_tke_surf_2D(ie,je))
-    !  forc_tke_surf_2D(:,:)=0.0
-    !ALLOCATE(bottom_fric_2D(ie,je))
-    !  bottom_fric_2D(:,:)=0.0
-    !ALLOCATE(forc_rho_surf_2D(ie,je))
-    !  forc_rho_surf_2D(:,:)=0.0
-    bottom_fric = 0.0
+    !tke forcing fields
+    forc_tke_surf = 0.0
     forc_rho_surf = 0.0
+    bottom_fric   = 0.0
+
+    ! read initial tke
+    fname = trim(path_data) // "etke0.txt"
+    open(fid, file=fname, status="old", action='read')
+    read(fid, *) tke
+    close(fid)
     
     CALL init_tke(c_k            = c_k,            &
                   c_eps          = c_eps,          &
@@ -130,68 +123,69 @@ LOGICAL :: &
 
 !-------------------------------------------------------------------------------- 
   subroutine calc_cvmix_tke
-      REAL*8, DIMENSION(nz+1) :: &
-        avo_old, &
-        dvo_old!, &
-      integer :: i, j, tstep_count
-      real*8                :: forc_rho_surf, forc_tke_surf
-      i = 1
-      j = 1
-      tstep_count = 1
-      avo_old = 0.0
-      dvo_old = 0.0
-     
-      forc_tke_surf = cd * sqrt( (taux_act**2 + tauy_act**2)**(3./2.)  )
-      forc_rho_surf = 0.0
+    REAL*8, DIMENSION(nz+1) :: &
+      avo_old, &
+      dvo_old!, &
+    integer :: i, j, tstep_count
+    i = 1
+    j = 1
+    tstep_count = 1
+    avo_old = 0.0
+    dvo_old = 0.0
+    
+    !tke forcing fields
+    forc_tke_surf = cd * sqrt( (taux_act**2 + tauy_act**2)**(3./2.)  )
+    forc_rho_surf = 0.0
+    bottom_fric   = 0.0
 
-      ! main cvmix call to calculate tke
-      CALL cvmix_coeffs_tke( &
-                             i = i,                          &
-                             j = j,                          &
-                             tstep_count = tstep_count,      &
-                             tke_diss_out = tke_diss,        & ! (inout)
-                             tke_out      = tke,             & ! (inout)
-                             ! FIXME: nils: exchange cvmix_dummy_1 with avo later
-                             KappaM_out   = tke_avo,         & ! (inout)
-                             KappaH_out   = tke_dvo,         & ! (inout)
-                             !KappaM_out   = avo,             & ! (inout)
-                             !KappaH_out   = dvo,             & ! (inout)
-                             cvmix_int_1  = cvmix_dummy_1,   & ! (out)
-                             cvmix_int_2  = cvmix_dummy_2,   & ! (out)
-                             cvmix_int_3  = cvmix_dummy_3,   & ! (out)
-                             dzw          = dzw,             &
-                             dzt          = dzt,             &
-                             nlev         = nz,              &
-                             max_nlev     = nz,              &
-                             old_tke      = tke,             &
-                             old_tke_diss = tke_diss,        &
-                             Ssqr         = Ssqr_3D,         &
-                             Nsqr         = Nsqr_3D,         &
-                             tke_Tbpr     = tke_Tbpr,        &
-                             tke_Tspr     = tke_Tspr,        &
-                             tke_Tdif     = tke_Tdif,        &
-                             tke_Tdis     = tke_Tdis,        &
-                             tke_Twin     = tke_Twin,        &
-                             tke_Tiwf     = tke_Tiwf,        &
-                             tke_Tbck     = tke_Tbck,        &
-                             tke_Ttot     = tke_Ttot,        &
-                             tke          = tke,             &
-                             tke_Lmix     = tke_Lmix,        &
-                             tke_Pr       = tke_Pr,          &
-                             forc_tke_surf= forc_tke_surf,   &
-                             ! FIXME: nils: needs to be set some where
-                             E_iw         = tke_iwe,         &
-                             dtime        = dt,              &
-                             bottom_fric  = bottom_fric,     &
-                             old_kappaM   = avo_old,         &
-                             old_KappaH   = dvo_old,         & 
-                             iw_diss      = tke_iw_forcing,  & 
-                             forc_rho_surf= forc_rho_surf,   &
-                             !Kappa_GM     = Kappa_GM,             & ! FIXME: optional
-                             rho_ref      = rho0,            &
-                             grav         = grav,            &
-                             alpha_c      = tke_iw_alpha_c   &
-                           )
+    ! main cvmix call to calculate tke
+    CALL cvmix_coeffs_tke( &
+                           i = i,                          &
+                           j = j,                          &
+                           tstep_count = tstep_count,      &
+                           tke_diss_out = tke_diss,        & ! (inout)
+                           tke_out      = tke,             & ! (inout)
+                           ! FIXME: nils: exchange cvmix_dummy_1 with avo later
+                           KappaM_out   = tke_avo,         & ! (inout)
+                           KappaH_out   = tke_dvo,         & ! (inout)
+                           !KappaM_out   = avo,             & ! (inout)
+                           !KappaH_out   = dvo,             & ! (inout)
+                           cvmix_int_1  = cvmix_dummy_1,   & ! (out)
+                           cvmix_int_2  = cvmix_dummy_2,   & ! (out)
+                           cvmix_int_3  = cvmix_dummy_3,   & ! (out)
+                           dzw          = dzw,             &
+                           dzt          = dzt,             &
+                           nlev         = nz,              &
+                           max_nlev     = nz,              &
+                           old_tke      = tke,             &
+                           old_tke_diss = tke_diss,        &
+                           Ssqr         = S2,              &
+                           Nsqr         = N2,              &
+                           tke_Tbpr     = tke_Tbpr,        &
+                           tke_Tspr     = tke_Tspr,        &
+                           tke_Tdif     = tke_Tdif,        &
+                           tke_Tdis     = tke_Tdis,        &
+                           tke_Twin     = tke_Twin,        &
+                           tke_Tiwf     = tke_Tiwf,        &
+                           tke_Tbck     = tke_Tbck,        &
+                           tke_Ttot     = tke_Ttot,        &
+                           tke          = tke,             &
+                           tke_Lmix     = tke_Lmix,        &
+                           tke_Pr       = tke_Pr,          &
+                           forc_tke_surf= forc_tke_surf,   &
+                           ! FIXME: nils: needs to be set some where
+                           E_iw         = tke_iwe,         &
+                           dtime        = dt,              &
+                           bottom_fric  = bottom_fric,     &
+                           old_kappaM   = avo_old,         &
+                           old_KappaH   = dvo_old,         & 
+                           iw_diss      = tke_iw_forcing,  & 
+                           forc_rho_surf= forc_rho_surf,   &
+                           !Kappa_GM     = Kappa_GM,             & ! FIXME: optional
+                           rho_ref      = rho0,            &
+                           grav         = grav,            &
+                           alpha_c      = tke_iw_alpha_c   &
+                         )
   end subroutine calc_cvmix_tke
 
 !-------------------------------------------------------------------------------- 
