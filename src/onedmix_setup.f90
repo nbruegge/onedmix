@@ -14,13 +14,14 @@ contains
 ! -------------------------------------------------------------------------------- 
   subroutine setup_onedmix()
     ! --- read namelist "main"
-    namelist/main/nz, nt, ntt, dt, dimp, epsab, Avb, kvb, rho0, grav, &
+    namelist/main/nz, nt, ntt, dt, dimp, epsab, Avb, kvb, rho0, cp, grav, &
                   cal_type, cal_units, cal_origin, force_freq, nforc, &
-                  mixing_scheme, fCor
+                  mixing_scheme, fCor, bottomDragQuadratic
 
     ! --- set default values
     ! FIXME: Define default values for every variable
     fCor = 0.0*1e-4
+    bottomDragQuadratic = 0.0
 
     ! --- read namelist
     if (.true.) then

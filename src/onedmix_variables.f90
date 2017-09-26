@@ -15,8 +15,10 @@ module onedmix_variables
   ! real*8             :: kv_min, kv_max, Av_min, Av_max ! FIXME: Do we need those?
   real*8              :: kvB, Avb  ! FIXME: Put these to PP scheme
   real*8              :: fCor ! Coriolis parameter
-  real*8              :: rho0 != 1025
-  real*8              :: grav != 9.81
+  real*8              :: bottomDragQuadratic ! quadratic bottom-drag coefficient (dimensionless)
+  real*8              :: rho0 != 1025. kg/m^3
+  real*8              :: cp   != 4000. J/(kg K)
+  real*8              :: grav != 9.81  m/s^2
   character(len=128)  :: cal_type, cal_units, cal_origin
   real*8              :: force_freq
   integer             :: nforc
@@ -61,6 +63,7 @@ module onedmix_variables
   real*8                            :: q0_act, emp_act, taux_act, tauy_act
   real*8                            :: tAlpha = 2e-4
   real*8                            :: sBeta = 0.*7.4e-4 
+  real*8                            :: tact
 
   ! FIXME: Do we need these
   logical :: &

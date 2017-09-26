@@ -22,6 +22,7 @@ all:
     onedmix_io.f90 \
     onedmix_vmix_mypp.f90 \
     onedmix_vmix_mytke.f90 \
+    onedmix_vmix_myconst.f90 \
     onedmix_vmix_cvmix_tke.f90 \
     onedmix_setup.f90 \
     onedmix_timeloop.f90 \

@@ -1,38 +1,25 @@
-module onedmix_vmix_mypp
+module onedmix_vmix_myconst
   use onedmix_variables
   use onedmix_eos
   implicit none
   
   ! namelist parameters
-  real*8 :: Av0, kv0, alpha, nAv
   logical :: convective_adjustment
   real*8 :: kv_cadjust
 
   contains
 
 !-------------------------------------------------------------------------------- 
-  subroutine setup_vmix_mypp
-    ! set default values
-    Av0 = 5e-3
-    kv0 = 5e-3
-    alpha = 5.0
-    nAv = 2.0
-
+  subroutine setup_vmix_myconst
     convective_adjustment = .false.
     kv_cadjust = 0.1
-  end subroutine setup_vmix_mypp
-  
-!-------------------------------------------------------------------------------- 
-  subroutine calc_vmix_mypp
-    integer :: k
+  end subroutine setup_vmix_myconst
 
-    ! --- initialize/reset values
-    Av=0.0
-    kv=0.0
-    Av = Av + Av0 / (1+alpha*Ri)**nAv
-    kv = kv + kv0 / (1+alpha*Ri)
-    Av = Av + Avb
-    kv = kv + kvb
+!-------------------------------------------------------------------------------- 
+  subroutine calc_vmix_myconst
+    integer :: k
+    Av = Avb
+    kv = kvb
 
     ! --- convective adjustment
     if ( convective_adjustment ) then
@@ -42,10 +29,10 @@ module onedmix_vmix_mypp
         end if
       end do
     end if
-  end subroutine calc_vmix_mypp
+  end subroutine calc_vmix_myconst
 
 !-------------------------------------------------------------------------------- 
-  subroutine write_snap_mypp
-  end subroutine write_snap_mypp
+  subroutine write_snap_myconst
+  end subroutine write_snap_myconst
 
-end module onedmix_vmix_mypp
+end module onedmix_vmix_myconst

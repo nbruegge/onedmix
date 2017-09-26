@@ -4,6 +4,7 @@ module onedmix_timeloop
   use onedmix_eos
   use onedmix_vmix_mypp
   use onedmix_vmix_mytke
+  use onedmix_vmix_myconst
   use onedmix_cvmix_tke
   implicit none
   contains
@@ -19,9 +20,11 @@ module onedmix_timeloop
     write(*,*) "(nz, nt) = ", nz, nt
     write(*,*) "dt = ", dt
     write(*,*) "================================================================================"
-  
+    
+    tact = 0
     do l=1,ntt
       do ll=1,nt
+
         !! explicit Adams-Bashforth time stepping
         !call calc_Gimp(temp, kv, dzw, dzt, nz, Gtemp)
         !temp = temp + ( (1.5+epsab)*Gtemp - (0.5+epsab)*Gtemp_old ) * dt
@@ -51,17 +54,37 @@ module onedmix_timeloop
         ! --- interpolate surface forcing to current time
         ! (onedmix_timeloop/interp_forcing)
         call interp_forcing(q0, q0_act)
-        Fexp_temp(1) = Fexp_temp(1) + q0_act/dzw(1)
+        Fexp_temp(1) = Fexp_temp(1) + q0_act/(cp*rho0)/dzw(1)
         call interp_forcing(emp, emp_act)
         Fexp_salt(1) = Fexp_salt(1) + emp_act/dzw(1)
         call interp_forcing(taux, taux_act)
-        Fexp_uvel(1) = Fexp_uvel(1) + taux_act
+        Fexp_uvel(1) = Fexp_uvel(1) + taux_act/dzw(1)
         call interp_forcing(tauy, tauy_act)
-        Fexp_vvel(1) = Fexp_vvel(1) + tauy_act
+        Fexp_vvel(1) = Fexp_vvel(1) + tauy_act/dzw(1)
+
+        !write(*,*) 'q0_act = ', q0_act
+        !write(*,*) 'emp_act = ', emp_act
+        !write(*,*) 'taux_act = ', taux_act
+        !write(*,*) 'tauy_act = ', tauy_act
+
+        !write(*,*) 'q0 = ', q0
+        !write(*,*) 'emp = ', emp
+        !write(*,*) 'taux = ', taux
+        !write(*,*) 'tauy = ', tauy
+
+        !if (ll==10) then
+        !  stop
+        !end if
+
+        ! --- add bottom friction
+        Fexp_uvel(nz) = Fexp_uvel(nz) &
+          - bottomDragQuadratic*sqrt(0.5*(uvel(nz)**2+vvel(nz)**2))*uvel(nz)/dzw(nz)
+        Fexp_vvel(nz) = Fexp_vvel(nz) &
+          - bottomDragQuadratic*sqrt(0.5*(uvel(nz)**2+vvel(nz)**2))*vvel(nz)/dzw(nz)
 
         ! --- Coriolis force
-        !Fexp_uvel = Fexp_uvel + fCor*vvel
-        !Fexp_vvel = Fexp_vvel - fCor*uvel
+        Fexp_uvel = Fexp_uvel + fCor*vvel
+        Fexp_vvel = Fexp_vvel - fCor*uvel
   
         ! --- derive updated variable from explicite and implicite parts
         ! semi-implicit time stepping
@@ -109,7 +132,12 @@ module onedmix_timeloop
         elseif (mixing_scheme == 3) then
           ! (onedmix_cvmix_tke/calc_cvmix_tke)
           call calc_cvmix_tke()
+        elseif (mixing_scheme == 4) then
+          ! (onedmix_vmix_myconst/calc_vmix_myconst)
+          call calc_vmix_myconst()
         end if
+
+        tact = tact+dt
       end do ! ll=1,nt
   
       ! --- model snapshot
@@ -126,6 +154,9 @@ module onedmix_timeloop
       elseif (mixing_scheme == 3) then
         ! (onedmix_cvmix_tke/write_snap_cvmix_tke)
         call write_snap_cvmix_tke()
+      elseif (mixing_scheme == 4) then
+        ! (onedmix_vmix_myconst/write_snap_myconst)
+        call write_snap_myconst()
       end if
     end do ! l=1,ntt
   
@@ -245,12 +276,16 @@ module onedmix_timeloop
     real*8, intent(in), dimension(nforc) :: forc
     real*8, intent(out) :: forc_interp
     integer :: nf
-    real*8 :: tact
   
     ! linear interpolation
-    tact = ntt*nt*dt
-    nf = floor(tact/force_freq)
+    nf = ceiling(tact/force_freq)
+    !tl   = nf*force_freq
+    !tlp1 = (nf+1)*force_freq
     !write(*,*) 'nf = ', nf
+    !write(*,*) 'tact = ', tact
+    !write(*,*) '---'
+    !write(*,*) 'forc(nf+1) = ', forc(nf+1)
+    !write(*,*) 'forc(nf)   = ', forc(nf)
     forc_interp = (forc(nf+1)-forc(nf))/force_freq * (tact - nf*force_freq) + forc(nf)
   end subroutine interp_forcing
 
