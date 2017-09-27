@@ -16,12 +16,13 @@ contains
     ! --- read namelist "main"
     namelist/main/nz, nt, ntt, dt, dimp, epsab, Avb, kvb, rho0, cp, grav, &
                   cal_type, cal_units, cal_origin, force_freq, nforc, &
-                  mixing_scheme, fCor, bottomDragQuadratic
+                  mixing_scheme, fCor, bottomDragQuadratic, no_slip_bottom
 
     ! --- set default values
     ! FIXME: Define default values for every variable
     fCor = 0.0*1e-4
     bottomDragQuadratic = 0.0
+    no_slip_bottom = .false.
 
     ! --- read namelist
     if (.true.) then

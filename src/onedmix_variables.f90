@@ -23,6 +23,7 @@ module onedmix_variables
   real*8              :: force_freq
   integer             :: nforc
   integer             :: mixing_scheme
+  logical             :: no_slip_bottom
 
   integer, parameter :: nn=9
   logical :: lallocate=.false.

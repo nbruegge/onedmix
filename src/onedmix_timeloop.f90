@@ -76,11 +76,20 @@ module onedmix_timeloop
         !  stop
         !end if
 
-        ! --- add bottom friction
+        ! --- add quadratic bottom friction
         Fexp_uvel(nz) = Fexp_uvel(nz) &
           - bottomDragQuadratic*sqrt(0.5*(uvel(nz)**2+vvel(nz)**2))*uvel(nz)/dzw(nz)
         Fexp_vvel(nz) = Fexp_vvel(nz) &
           - bottomDragQuadratic*sqrt(0.5*(uvel(nz)**2+vvel(nz)**2))*vvel(nz)/dzw(nz)
+
+        ! --- add bottom friction by no-slip condition (calculated explicitely here)
+        if (no_slip_bottom) then
+          ! assume uvel and vvel=0 at interface zu(nz+1)
+          Fexp_uvel(nz) = Fexp_uvel(nz) &
+            - Av(nz)*uvel(nz)/(dzw(nz)*dzt(nz))
+          Fexp_vvel(nz) = Fexp_vvel(nz) &
+            - Av(nz)*vvel(nz)/(dzw(nz)*dzt(nz))
+        end if
 
         ! --- Coriolis force
         Fexp_uvel = Fexp_uvel + fCor*vvel
