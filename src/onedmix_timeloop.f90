@@ -21,60 +21,52 @@ module onedmix_timeloop
     write(*,*) "dt = ", dt
     write(*,*) "================================================================================"
     
-    tact = 0
+    tact = 0.0
     do l=1,ntt
       do ll=1,nt
+        ! -------------------- 
+        ! --- interpolate surface forcing to current time
+        ! (onedmix_timeloop/interp_forcing)
+        call interp_forcing(q0, q0_act)
+        call interp_forcing(emp, emp_act)
+        call interp_forcing(taux, taux_act)
+        call interp_forcing(tauy, tauy_act)
+  
+        ! --- derive actual density
+        ! (onedmix_eos/calc_dens)
+        call calc_dens(temp, salt, 0.d0, dens, nz)
 
-        !! explicit Adams-Bashforth time stepping
-        !call calc_Gimp(temp, kv, dzw, dzt, nz, Gtemp)
-        !temp = temp + ( (1.5+epsab)*Gtemp - (0.5+epsab)*Gtemp_old ) * dt
-        !Gtemp_old = Gtemp
-        !Gtemp = 0.0
+        ! --- calculate vertical gradients
+        ! (onedmix_timeloop/calc_vertical_gradients)
+        call calc_vertical_gradients()
   
-        !call calc_Gimp(salt, kv, dzw, dzt, nz, Gsalt)
-        !salt = salt + ( (1.5+epsab)*Gsalt - (0.5+epsab)*Gsalt_old ) * dt
-        !Gsalt_old = Gsalt
-        !Gsalt = 0.0
+        ! --- derive mixing coefficients kv and Av
+        if (mixing_scheme == 1) then
+          ! (onedmix_vmix_mypp/calc_mypp)
+          call calc_vmix_mypp() 
+        elseif (mixing_scheme == 2) then
+          ! (onedmix_vmix_mytke/calc_mytke)
+          call calc_vmix_mytke()
+        elseif (mixing_scheme == 3) then
+          ! (onedmix_cvmix_tke/calc_cvmix_tke)
+          call calc_cvmix_tke()
+        elseif (mixing_scheme == 4) then
+          ! (onedmix_vmix_myconst/calc_vmix_myconst)
+          call calc_vmix_myconst()
+        end if
+        ! -------------------- 
   
-        !call calc_Gimp(uvel, Av, dzw, dzt, nz, Guvel)
-        !uvel = uvel + ( (1.5+epsab)*Guvel - (0.5+epsab)*Guvel_old ) * dt
-        !Guvel_old = Guvel
-        !Guvel = 0.0
-  
-        !call calc_Gimp(vvel, Av, dzw, dzt, nz, Gvvel)
-        !vvel = vvel + ( (1.5+epsab)*Gvvel - (0.5+epsab)*Gvvel_old ) * dt
-        !Gvvel_old = Gvvel
-        !Gvvel = 0.0
-  
+        ! --- reset forcing
         Fexp_temp = 0.0
         Fexp_salt = 0.0
         Fexp_uvel = 0.0
         Fexp_vvel = 0.0
-  
-        ! --- interpolate surface forcing to current time
-        ! (onedmix_timeloop/interp_forcing)
-        call interp_forcing(q0, q0_act)
+
+        ! --- add surface forcing
         Fexp_temp(1) = Fexp_temp(1) + q0_act/(cp*rho0)/dzw(1)
-        call interp_forcing(emp, emp_act)
         Fexp_salt(1) = Fexp_salt(1) + emp_act/dzw(1)
-        call interp_forcing(taux, taux_act)
         Fexp_uvel(1) = Fexp_uvel(1) + taux_act/dzw(1)
-        call interp_forcing(tauy, tauy_act)
         Fexp_vvel(1) = Fexp_vvel(1) + tauy_act/dzw(1)
-
-        !write(*,*) 'q0_act = ', q0_act
-        !write(*,*) 'emp_act = ', emp_act
-        !write(*,*) 'taux_act = ', taux_act
-        !write(*,*) 'tauy_act = ', tauy_act
-
-        !write(*,*) 'q0 = ', q0
-        !write(*,*) 'emp = ', emp
-        !write(*,*) 'taux = ', taux
-        !write(*,*) 'tauy = ', tauy
-
-        !if (ll==10) then
-        !  stop
-        !end if
 
         ! --- add quadratic bottom friction
         Fexp_uvel(nz) = Fexp_uvel(nz) &
@@ -122,29 +114,6 @@ module onedmix_timeloop
                          dimp, epsab, ptra,                     &
                          Gptra_old, Gptra_exp,                  &
                          Fexp_ptra, 0)
-  
-        ! --- derive actual density
-        ! (onedmix_eos/calc_dens)
-        call calc_dens(temp, salt, 0.d0, dens, nz)
-
-        ! --- 
-        ! (onedmix_timeloop/calc_vertical_gradients)
-        call calc_vertical_gradients()
-  
-        ! --- derive mixing coefficients kv and Av
-        if (mixing_scheme == 1) then
-          ! (onedmix_vmix_mypp/calc_mypp)
-          call calc_vmix_mypp() 
-        elseif (mixing_scheme == 2) then
-          ! (onedmix_vmix_mytke/calc_mytke)
-          call calc_vmix_mytke()
-        elseif (mixing_scheme == 3) then
-          ! (onedmix_cvmix_tke/calc_cvmix_tke)
-          call calc_cvmix_tke()
-        elseif (mixing_scheme == 4) then
-          ! (onedmix_vmix_myconst/calc_vmix_myconst)
-          call calc_vmix_myconst()
-        end if
 
         tact = tact+dt
       end do ! ll=1,nt
@@ -278,62 +247,6 @@ module onedmix_timeloop
     !write(*,*) 'phi_new = ', phi_new(1:5)
 
   end subroutine calc_Gimp2
-
-!-------------------------------------------------------------------------------- 
-  subroutine interp_forcing(forc, forc_interp)
-    use onedmix_variables
-    real*8, intent(in), dimension(nforc) :: forc
-    real*8, intent(out) :: forc_interp
-    integer :: nf
-  
-    ! linear interpolation
-    nf = ceiling(tact/force_freq)
-    !tl   = nf*force_freq
-    !tlp1 = (nf+1)*force_freq
-    !write(*,*) 'nf = ', nf
-    !write(*,*) 'tact = ', tact
-    !write(*,*) '---'
-    !write(*,*) 'forc(nf+1) = ', forc(nf+1)
-    !write(*,*) 'forc(nf)   = ', forc(nf)
-    forc_interp = (forc(nf+1)-forc(nf))/force_freq * (tact - nf*force_freq) + forc(nf)
-  end subroutine interp_forcing
-
-!-------------------------------------------------------------------------------- 
-  subroutine calc_vertical_gradients()
-    real*8, dimension(nz+1) :: pint
-    real*8                  :: dens_km1, dens_k
-    integer :: k
-    ! --- initialize/reset values
-    N2=0.0
-    S2=0.0
-    uz=0.0
-    vz=0.0
-    Ri=0.0
-    ! as in MPIOM beleg.f90 (l. 79)
-    pint = 0.0001 * rho0 * (-zu)
-    do k=2,nz
-      !pint = 0.5*(pbcl(k-1)+pbcl(k))
-      call potrho(temp(k-1), salt(k-1), pint(k), dens_km1) 
-      call potrho(temp(k),   salt(k),   pint(k), dens_k) 
-      N2(k) = -grav/rho0*(dens_km1-dens_k)/dzt(k)
-      uz(k) = (uvel(k-1)-uvel(k))/dzt(k)
-      vz(k) = (vvel(k-1)-vvel(k))/dzt(k)
-      !write(*,*) 'dens_km1 = ', dens_km1
-      !write(*,*) 'dens_k   = ', dens_k
-    end do
-    !write(*,*) 'dzt = ', dzt
-    !write(*,*) 'N2 = ', N2
-    !stop
-    N2(1) = 0.0
-    uz(1) = 0.0
-    vz(1) = 0.0
-    N2(nz+1) = 0.0
-    uz(nz+1) = 0.0
-    vz(nz+1) = 0.0
-    S2 = uz**2+vz**2
-    Ri = N2/max(S2,1e-12)
-  end subroutine calc_vertical_gradients
-
 
 !  subroutine calc_vert_grid()
 !    use onedmix_variables

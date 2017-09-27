@@ -1,12 +1,10 @@
 module onedmix_setup
-!
-! 
-!
   use onedmix_variables
-  use onedmix_eos
   use onedmix_io
+  use onedmix_eos
   use onedmix_vmix_mypp
   use onedmix_vmix_mytke 
+  use onedmix_vmix_myconst
   use onedmix_cvmix_tke
   implicit none
 contains
@@ -44,28 +42,78 @@ contains
     ! (onedmix_setup/read_input_data)
     call read_input_data()
 
-    ! --- calculate initial density
-    ! (onedmix_eos/calc_dens)
-    call calc_dens(temp, salt, 0.d0, dens, nz)
-
-    ! --- write initial output file 
-    ! (onedmix_io/write_snapshot)
-    call write_snapshot()
-
     ! --- setup mixing scheme
     if (mixing_scheme == 1) then
       ! (onedmix_vmix_mypp/setup_mypp)
       call setup_vmix_mypp() 
-      call write_snap_mypp()
     elseif (mixing_scheme == 2) then
       ! (onedmix_vmix_mytke/setup_mytke)
       call setup_vmix_mytke()
-      call write_snap_mytke()
     elseif (mixing_scheme == 3) then
       ! (onedmix_cvmix_tke/setup_cvmix_tke)
       call setup_cvmix_tke()
-      call write_snap_cvmix_tke()
+    elseif (mixing_scheme == 4) then
+      ! (onedmix_vmix_const/setup_vmix_const)
+      call setup_vmix_myconst()
     end if
+    
+
+    ! -------------------- 
+    ! Calculate initial fields and write initial snapshot
+    ! (only necessary for initial snapshot but not for calculation)
+    ! (This should be the same as in onedmix_timeloop.f90)
+    ! -------------------- 
+    tact = 0.0
+        ! -------------------- 
+        ! --- interpolate surface forcing to current time
+        ! (onedmix_timeloop/interp_forcing)
+        call interp_forcing(q0, q0_act)
+        call interp_forcing(emp, emp_act)
+        call interp_forcing(taux, taux_act)
+        call interp_forcing(tauy, tauy_act)
+  
+        ! --- derive actual density
+        ! (onedmix_eos/calc_dens)
+        call calc_dens(temp, salt, 0.d0, dens, nz)
+
+        ! --- calculate vertical gradients
+        ! (onedmix_timeloop/calc_vertical_gradients)
+        call calc_vertical_gradients()
+  
+        ! --- derive mixing coefficients kv and Av
+        if (mixing_scheme == 1) then
+          ! (onedmix_vmix_mypp/calc_mypp)
+          call calc_vmix_mypp() 
+        elseif (mixing_scheme == 2) then
+          ! (onedmix_vmix_mytke/calc_mytke)
+          call calc_vmix_mytke()
+        elseif (mixing_scheme == 3) then
+          ! (onedmix_cvmix_tke/calc_cvmix_tke)
+          call calc_cvmix_tke()
+        elseif (mixing_scheme == 4) then
+          ! (onedmix_vmix_myconst/calc_vmix_myconst)
+          call calc_vmix_myconst()
+        end if
+        ! -------------------- 
+    ! -------------------- 
+
+    ! --- write initial model snapshot 
+      ! (onedmix_io/write_snapshot)
+      call write_snapshot()
+
+      if (mixing_scheme == 1) then
+        ! (onedmix_vmix_mypp/write_snap_mypp)
+        call write_snap_mypp()
+      elseif (mixing_scheme == 2) then
+        ! (onedmix_vmix_mypp/write_snap_mytke)
+        call write_snap_mytke()
+      elseif (mixing_scheme == 3) then
+        ! (onedmix_cvmix_tke/write_snap_cvmix_tke)
+        call write_snap_cvmix_tke()
+      elseif (mixing_scheme == 4) then
+        ! (onedmix_vmix_myconst/write_snap_myconst)
+        call write_snap_myconst()
+      end if
 
   end subroutine setup_onedmix
   
