@@ -2,6 +2,7 @@ module onedmix_setup
   use onedmix_variables
   use onedmix_io
   use onedmix_eos
+  use onedmix_utils
   use onedmix_vmix_mypp
   use onedmix_vmix_mytke 
   use onedmix_vmix_myconst
@@ -11,16 +12,20 @@ contains
 
 ! -------------------------------------------------------------------------------- 
   subroutine setup_onedmix()
+    integer :: k
+
     ! --- read namelist "main"
     namelist/main/nz, nt, ntt, dt, dimp, epsab, Avb, kvb, rho0, cp, grav, &
                   cal_type, cal_units, cal_origin, force_freq, nforc, &
-                  mixing_scheme, fCor, bottomDragQuadratic, no_slip_bottom
+                  mixing_scheme, fCor, bottomDragQuadratic, no_slip_bottom, &
+                  eos_type
 
     ! --- set default values
     ! FIXME: Define default values for every variable
     fCor = 0.0*1e-4
     bottomDragQuadratic = 0.0
     no_slip_bottom = .false.
+    eos_type = 2
 
     ! --- read namelist
     if (.true.) then
@@ -74,7 +79,9 @@ contains
   
         ! --- derive actual density
         ! (onedmix_eos/calc_dens)
-        call calc_dens(temp, salt, 0.d0, dens, nz)
+        do k=1,nz
+          call calc_dens(temp(k), salt(k), 0.d0, dens(k))
+        enddo
 
         ! --- calculate vertical gradients
         ! (onedmix_timeloop/calc_vertical_gradients)

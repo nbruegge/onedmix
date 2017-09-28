@@ -1,25 +1,22 @@
 module onedmix_eos
+  use onedmix_variables
   implicit none
 
   contains
 
 !-------------------------------------------------------------------------------- 
-  subroutine calc_dens(itemp, isalt, pres0, odens, inz)
+  subroutine calc_dens(itemp, isalt, pres0, odens)
     !use onedmix_setup
     !use eos
-    integer, intent(in)                 :: inz 
-    real*8, intent(in), dimension(inz)  :: itemp, isalt 
-    real*8, intent(in)                  :: pres0
-    real*8, intent(out), dimension(inz) :: odens
-    integer :: k
-    ! FIXME: linear eos for the moment
-    !do k=1,inz
-    !  odens(k) = rho0 * ( 1.d0 - tAlpha*itemp(k) + sBeta*isalt(k) )
-    !enddo
+    real*8, intent(in)  :: itemp, isalt 
+    real*8, intent(in)  :: pres0
+    real*8, intent(out) :: odens
 
-    do k=1,inz
-      call potrho(itemp(k), isalt(k), pres0, odens(k))
-    end do
+    if (eos_type==1) then
+      call eos_linear(itemp, isalt, pres0, odens)
+    else if (eos_type==2) then
+      call mpiom_potrho(itemp, isalt, pres0, odens)
+    end if
 
     !pbcl(1) = 0.0
     !do k=2,inz
@@ -28,9 +25,20 @@ module onedmix_eos
   end subroutine calc_dens
 
 !-------------------------------------------------------------------------------- 
+! linear equation of state
+  subroutine eos_linear(itemp, isalt, ipres, dens_out)
+    real*8, intent(in)  :: itemp, isalt, ipres
+    real*8, intent(out) :: dens_out
+    real :: alphaT=2d-4
+    real :: betaS=1d-11
+
+    dens_out = rho0 * (1d0 - alphaT*itemp +  betaS*isalt)
+  end subroutine eos_linear
+
+!-------------------------------------------------------------------------------- 
 ! from MPIOM
 ! compute density from potential temperature directly
-  SUBROUTINE potrho(tpot, sal, p, rho)
+  SUBROUTINE mpiom_potrho(tpot, sal, p, rho)
     !INTEGER, INTENT(in) :: nz 
     REAL*8, INTENT(in) :: tpot, sal, p
     REAL*8, INTENT(out) :: rho
@@ -96,5 +104,5 @@ module onedmix_eos
          &         + r_e0 + t * (r_e1 + t * (r_e2 + t * (r_e3 + t * r_e4)))  &
          &         + s * (r_f0 + t * (r_f1 + t * (r_f2 + t * r_f3)))         &
          &         + s3h * (r_g0 + t * (r_g1 + r_g2 * t))))
-  END SUBROUTINE potrho
+  END SUBROUTINE mpiom_potrho
 end module onedmix_eos

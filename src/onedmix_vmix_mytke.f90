@@ -1,6 +1,7 @@
 module onedmix_vmix_mytke
   use onedmix_variables
   use onedmix_eos
+  use onedmix_utils
   use onedmix_io
   implicit none
 

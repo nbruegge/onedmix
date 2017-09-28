@@ -17,8 +17,9 @@ all:
     cvmix_tke.f90 
 	cd src; \
 	gfortran -c \
-    onedmix_eos.f90 \
     onedmix_variables.f90 \
+    onedmix_eos.f90 \
+    onedmix_utils.f90 \
     onedmix_io.f90 \
     onedmix_vmix_mypp.f90 \
     onedmix_vmix_mytke.f90 \

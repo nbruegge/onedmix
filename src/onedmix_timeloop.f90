@@ -2,6 +2,7 @@ module onedmix_timeloop
   use onedmix_variables
   use onedmix_io
   use onedmix_eos
+  use onedmix_utils
   use onedmix_vmix_mypp
   use onedmix_vmix_mytke
   use onedmix_vmix_myconst
@@ -34,7 +35,9 @@ module onedmix_timeloop
   
         ! --- derive actual density
         ! (onedmix_eos/calc_dens)
-        call calc_dens(temp, salt, 0.d0, dens, nz)
+        do k=1,nz
+          call calc_dens(temp(k), salt(k), 0.d0, dens(k))
+        enddo
 
         ! --- calculate vertical gradients
         ! (onedmix_timeloop/calc_vertical_gradients)
