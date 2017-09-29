@@ -65,6 +65,14 @@ module onedmix_timeloop
         Fexp_uvel = 0.0
         Fexp_vvel = 0.0
 
+        ! --- add pressure gradient forcing
+        Fexp_uvel = Fexp_uvel - dpdx
+        Fexp_vvel = Fexp_vvel - dpdy
+
+        ! --- Coriolis force
+        Fexp_uvel = Fexp_uvel + fCor*vvel
+        Fexp_vvel = Fexp_vvel - fCor*uvel
+
         ! --- add surface forcing
         Fexp_temp(1) = Fexp_temp(1) + q0_act/(cp*rho0)/dzw(1)
         Fexp_salt(1) = Fexp_salt(1) + emp_act/dzw(1)
@@ -85,10 +93,6 @@ module onedmix_timeloop
           Fexp_vvel(nz) = Fexp_vvel(nz) &
             - Av(nz)*vvel(nz)/(dzw(nz)*dzt(nz))
         end if
-
-        ! --- Coriolis force
-        Fexp_uvel = Fexp_uvel + fCor*vvel
-        Fexp_vvel = Fexp_vvel - fCor*uvel
   
         ! --- derive updated variable from explicite and implicite parts
         ! semi-implicit time stepping

@@ -150,6 +150,8 @@ contains
     allocate( Guvel_exp(1:nz) ); Guvel_exp=0.0
     allocate( Gvvel_exp(1:nz) ); Gvvel_exp=0.0
     allocate( Gptra_exp(1:nz) ); Gptra_exp=0.0
+    allocate( dpdx(1:nz) ); dpdx=0.0
+    allocate( dpdy(1:nz) ); dpdy=0.0
 
     allocate( kv(1:nz+1) ); kv=0.0
     allocate( Av(1:nz+1) ); Av=0.0
@@ -211,6 +213,14 @@ contains
     fname = trim(path_data) // "ptr0.txt"
     open(fid, file=fname, status="old", action='read')
     read(fid, *) ptra
+    close(fid)
+    fname = trim(path_data) // "dpdx.txt"
+    open(fid, file=fname, status="old", action='read')
+    read(fid, *) dpdx
+    close(fid)
+    fname = trim(path_data) // "dpdy.txt"
+    open(fid, file=fname, status="old", action='read')
+    read(fid, *) dpdy
     close(fid)
     fname = trim(path_data) // "forc_time.txt"
     open(fid, file=fname, status="old", action='read')

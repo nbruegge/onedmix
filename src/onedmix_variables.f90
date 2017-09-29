@@ -54,7 +54,9 @@ module onedmix_variables
                                        Gsalt_exp,     &
                                        Guvel_exp,     &
                                        Gvvel_exp,     &
-                                       Gptra_exp
+                                       Gptra_exp,     &
+                                       dpdx,          &
+                                       dpdy
 
   real*8, dimension(:), allocatable :: &
                                        kv,            &
