@@ -30,7 +30,7 @@ module onedmix_eos
     real*8, intent(in)  :: itemp, isalt, ipres
     real*8, intent(out) :: dens_out
     real :: alphaT=2d-4
-    real :: betaS=1d-11
+    real :: betaS=8d-4
 
     dens_out = rho0 * (1d0 - alphaT*itemp +  betaS*isalt)
   end subroutine eos_linear
